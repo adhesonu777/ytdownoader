@@ -1,16 +1,14 @@
 import os
+import time
 from flask import Flask, render_template, request, send_file
 import yt_dlp
 
 app = Flask(__name__)
 
-# फाईल्स साठवण्यासाठी पाथ (Path) सेटिंग
-if os.name == 'nt':  # तुमच्या पीसीसाठी (Windows)
-    DOWNLOAD_PATH = 'downloads/%(title)s.%(ext)s'
-    if not os.path.exists('downloads'):
-        os.makedirs('downloads')
-else:  # Render सर्व्हरसाठी (Linux)
-    DOWNLOAD_PATH = '/tmp/%(title)s.%(ext)s'
+# फाईल साठवण्यासाठी तात्पुरता पाथ
+DOWNLOAD_FOLDER = '/tmp' if os.name != 'nt' else 'downloads'
+if not os.path.exists(DOWNLOAD_FOLDER):
+    os.makedirs(DOWNLOAD_FOLDER)
 
 @app.route('/')
 def home():
@@ -22,14 +20,13 @@ def download_video():
     if not url:
         return "कृपया वैध यूट्यूब लिंक टाका!", 400
     
-    # अपडेटेड फॉरमॅट आणि कुकीज सेटिंग्ज
+    # सर्वात सुरक्षित डाऊनलोड सेटिंग्ज
     ydl_opts = {
-        # 'best' ऐवजी फ्लेक्सिबल फॉरमॅट वापरला आहे जेणेकरून एरर येणार नाही
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'outtmpl': DOWNLOAD_PATH,
+        'format': 'best',  # 'bestvideo+bestaudio' ऐवजी फक्त 'best' वापरा, यामुळे रिकामी फाईल येणार नाही
+        'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s_%(timestamp)s.%(ext)s'),
         'cookiefile': 'cookies.txt',  # तुमची कुकीज फाईल
         'nocheckcertificate': True,
-        'merge_output_format': 'mp4',
+        'noplaylist': True,
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         }
@@ -37,17 +34,18 @@ def download_video():
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # व्हिडिओ माहिती काढणे आणि डाऊनलोड करणे
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
             
-            # फाईल युजरला पाठवणे
-            return send_file(file_path, as_attachment=True)
-            
+            # फाईल खरंच तयार झाली आहे का आणि ती रिकामी नाही ना, याची खात्री करणे
+            if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                return send_file(file_path, as_attachment=True)
+            else:
+                return "सर््हरवर फाईल तयार होऊ शकली नाही, कृपया पुन्हा प्रयत्न करा.", 500
+                
     except Exception as e:
         return f"एरर आली आहे: {str(e)}", 500
 
 if __name__ == "__main__":
-    # Render साठी पोर्ट सेटिंग
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
