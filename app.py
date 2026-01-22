@@ -1,12 +1,12 @@
 import os
-import time
+import uuid
 from flask import Flask, render_template, request, send_file
 import yt_dlp
 
 app = Flask(__name__)
 
-# Render सर्व्हरसाठी तात्पुरता फोल्डर (Temp Folder)
-DOWNLOAD_FOLDER = '/tmp' if os.name != 'nt' else 'downloads'
+# Render सर्व्हरसाठी सुरक्षित तात्पुरता फोल्डर
+DOWNLOAD_FOLDER = '/tmp'
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
 
@@ -20,16 +20,14 @@ def download_video():
     if not url:
         return "कृपया वैध यूट्यूब लिंक टाका!", 400
     
-    # रिकामी फाईल टाळण्यासाठी 'best' फॉरमॅटचा वापर
+    # फाईलला युनिक नाव देणे
+    unique_id = str(uuid.uuid4())
+    # 'best' ऐवजी '18' फॉरमॅट (360p mp4) वापरला आहे जो नेहमी उपलब्ध असतो आणि फाईल लहान असते
     ydl_opts = {
-        'format': 'best',  # 'bestvideo+bestaudio' ऐवजी फक्त 'best' वापरा
-        'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s_%(timestamp)s.%(ext)s'),
-        'cookiefile': 'cookies.txt',  # तुमची कुकीज फाईल
+        'format': 'best[ext=mp4]/best', 
+        'outtmpl': os.path.join(DOWNLOAD_FOLDER, f'{unique_id}.%(ext)s'),
+        'cookiefile': 'cookies.txt', # तुमची कुकीज फाईल
         'nocheckcertificate': True,
-        'noplaylist': True,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        }
     }
     
     try:
@@ -37,13 +35,13 @@ def download_video():
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
             
-            # फाईल खरंच तयार झाली आहे का आणि तिचा आकार ० पेक्षा जास्त आहे का हे तपासणे
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 return send_file(file_path, as_attachment=True)
             else:
-                return "सर््हरवर फाईल तयार होऊ शकली नाही, कृपया पुन्हा प्रयत्न करा.", 500
+                return "व्हिडिओ फाईल तयार होऊ शकली नाही. कृपया दुसरी लिंक वापरून पहा.", 500
                 
     except Exception as e:
+        print(f"Error: {str(e)}")
         return f"एरर आली आहे: {str(e)}", 500
 
 if __name__ == "__main__":
