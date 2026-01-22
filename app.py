@@ -4,7 +4,7 @@ import yt_dlp
 
 app = Flask(__name__)
 
-# फाईल्स साठवण्यासाठी तात्पुरते फोल्डर सेट करणे
+# फाईल्स साठवण्यासाठी पाथ (Path) सेटिंग
 if os.name == 'nt':  # तुमच्या पीसीसाठी (Windows)
     DOWNLOAD_PATH = 'downloads/%(title)s.%(ext)s'
     if not os.path.exists('downloads'):
@@ -22,25 +22,22 @@ def download_video():
     if not url:
         return "कृपया वैध यूट्यूब लिंक टाका!", 400
     
-    # कुकीज फाईलचा वापर करून बॉट एरर टाळणे
+    # अपडेटेड फॉरमॅट आणि कुकीज सेटिंग्ज
     ydl_opts = {
-        'format': 'best[ext=mp4]/best',
+        # 'best' ऐवजी फ्लेक्सिबल फॉरमॅट वापरला आहे जेणेकरून एरर येणार नाही
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
         'outtmpl': DOWNLOAD_PATH,
-        'cookiefile': 'cookies.txt',  # ही ओळ सर्वात महत्त्वाची आहे
+        'cookiefile': 'cookies.txt',  # तुमची कुकीज फाईल
         'nocheckcertificate': True,
+        'merge_output_format': 'mp4',
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['android', 'web'],
-            }
-        },
+        }
     }
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # व्हिडिओ डाऊनलोड करणे
+            # व्हिडिओ माहिती काढणे आणि डाऊनलोड करणे
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
             
@@ -51,6 +48,6 @@ def download_video():
         return f"एरर आली आहे: {str(e)}", 500
 
 if __name__ == "__main__":
-    # पोर्ट सेटिंग
+    # Render साठी पोर्ट सेटिंग
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
