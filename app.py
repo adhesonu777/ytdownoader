@@ -5,7 +5,7 @@ import yt_dlp
 
 app = Flask(__name__)
 
-# फाईल साठवण्यासाठी तात्पुरता पाथ
+# Render सर्व्हरसाठी तात्पुरता फोल्डर (Temp Folder)
 DOWNLOAD_FOLDER = '/tmp' if os.name != 'nt' else 'downloads'
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
@@ -20,9 +20,9 @@ def download_video():
     if not url:
         return "कृपया वैध यूट्यूब लिंक टाका!", 400
     
-    # सर्वात सुरक्षित डाऊनलोड सेटिंग्ज
+    # रिकामी फाईल टाळण्यासाठी 'best' फॉरमॅटचा वापर
     ydl_opts = {
-        'format': 'best',  # 'bestvideo+bestaudio' ऐवजी फक्त 'best' वापरा, यामुळे रिकामी फाईल येणार नाही
+        'format': 'best',  # 'bestvideo+bestaudio' ऐवजी फक्त 'best' वापरा
         'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(id)s_%(timestamp)s.%(ext)s'),
         'cookiefile': 'cookies.txt',  # तुमची कुकीज फाईल
         'nocheckcertificate': True,
@@ -37,7 +37,7 @@ def download_video():
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
             
-            # फाईल खरंच तयार झाली आहे का आणि ती रिकामी नाही ना, याची खात्री करणे
+            # फाईल खरंच तयार झाली आहे का आणि तिचा आकार ० पेक्षा जास्त आहे का हे तपासणे
             if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                 return send_file(file_path, as_attachment=True)
             else:
