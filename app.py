@@ -17,11 +17,16 @@ def download_video():
     # Render वर डाऊनलोडसाठी /tmp/ फोल्डर वापरणे अनिवार्य आहे
     download_path = '/tmp/%(title)s.%(ext)s'
     
-    ydl_opts = {
+   ydl_opts = {
         'format': 'best[ext=mp4]/best',
-        'outtmpl': download_path,
-        'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
+        'outtmpl': DOWNLOAD_PATH,
+        'cookiefile': 'cookies.txt', # ही ओळ नवीन टाका
         'nocheckcertificate': True,
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],
+            }
+        },
     }
     
     try:
@@ -35,4 +40,5 @@ def download_video():
 if __name__ == "__main__":
     # Render साठी आवश्यक पोर्ट सेटिंग
     port = int(os.environ.get("PORT", 5000))
+
     app.run(host='0.0.0.0', port=port)
